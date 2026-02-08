@@ -44,7 +44,7 @@ For the article below, extract:
    - action_suggestion: if actionable, what the action is
 
 Return ONLY valid JSON with this structure:
-{
+{{
   "title": "...",
   "author": "...",
   "summary": "multi-paragraph summary",
@@ -53,16 +53,16 @@ Return ONLY valid JSON with this structure:
   "credibility_notes": "brief source credibility assessment",
   "overall_significance": 1-5,
   "claims": [
-    {
+    {{
       "text": "...",
       "theme": "ai_foundation_models",
       "confidence": "high",
       "significance": 4,
       "actionable": false,
       "action_suggestion": ""
-    }
+    }}
   ]
-}
+}}
 
 ARTICLE SOURCE: {source_name}
 ARTICLE URL: {url}
