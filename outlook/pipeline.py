@@ -14,6 +14,7 @@ from outlook.engines.analyst import Analyst
 from outlook.engines.briefing_engine import BriefingEngine
 from outlook.engines.emailer import Emailer
 from outlook.engines.extractor import Extractor
+from outlook.engines.llm_client import create_llm_client
 from outlook.engines.scanner import FeedConfig, Scanner
 from outlook.engines.scenario_engine import ScenarioEngine
 from outlook.models.belief import BeliefLog
@@ -40,8 +41,7 @@ def run_scan_pipeline(project_root: Path, scan_time: str = "AM") -> None:
     templates_dir = project_root / "templates"
     seen_path = project_root / "data" / ".seen.yaml"
 
-    api_key = config["anthropic"]["api_key"]
-    model = config["anthropic"].get("model", "claude-sonnet-4-5-20250929")
+    llm = create_llm_client(config)
     significance_threshold = config.get("scanning", {}).get("significance_threshold", 4)
     lookback_hours = config.get("scanning", {}).get("lookback_hours", 12)
 
@@ -50,8 +50,8 @@ def run_scan_pipeline(project_root: Path, scan_time: str = "AM") -> None:
     belief_log.load()
 
     scanner = Scanner(seen_path=seen_path)
-    extractor = Extractor(api_key=api_key, model=model)
-    analyst = Analyst(api_key=api_key, model=model)
+    extractor = Extractor(llm=llm)
+    analyst = Analyst(llm=llm)
     scenario_engine = ScenarioEngine(scenarios_dir, belief_log)
     briefing_engine = BriefingEngine(scenario_engine, belief_log, templates_dir, briefings_dir)
 

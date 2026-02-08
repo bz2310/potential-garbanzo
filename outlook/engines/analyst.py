@@ -11,9 +11,9 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-import anthropic
 import yaml
 
+from outlook.engines.llm_client import LLMClient
 from outlook.models.belief import BeliefDelta, BeliefLog
 from outlook.models.scenario import ScenarioTree
 from outlook.models.source import Source
@@ -75,9 +75,8 @@ If NO changes are warranted, return: {{"updates": [], "no_change_notes": "explan
 class Analyst:
     """Autonomous probability reasoning engine."""
 
-    def __init__(self, api_key: str, model: str = "claude-sonnet-4-5-20250929"):
-        self.client = anthropic.Anthropic(api_key=api_key)
-        self.model = model
+    def __init__(self, llm: LLMClient):
+        self.llm = llm
 
     def analyze(
         self,
@@ -114,12 +113,7 @@ class Analyst:
         )
 
         try:
-            response = self.client.messages.create(
-                model=self.model,
-                max_tokens=4096,
-                messages=[{"role": "user", "content": prompt}],
-            )
-            text = response.content[0].text
+            text = self.llm.complete(prompt, max_tokens=4096)
 
             if text.startswith("```"):
                 text = text.split("\n", 1)[1]

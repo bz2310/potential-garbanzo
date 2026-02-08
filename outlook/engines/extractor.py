@@ -1,4 +1,4 @@
-"""Extractor — use Anthropic API to extract claims and score significance."""
+"""Extractor — use LLM to extract claims and score significance."""
 
 from __future__ import annotations
 
@@ -6,8 +6,7 @@ import json
 import logging
 from typing import Optional
 
-import anthropic
-
+from outlook.engines.llm_client import LLMClient
 from outlook.engines.scanner import FeedItem
 from outlook.models.source import Claim, Source
 from outlook.models.theme import CANONICAL_THEMES
@@ -73,11 +72,10 @@ ARTICLE CONTENT:
 
 
 class Extractor:
-    """Extract claims from articles using the Anthropic API."""
+    """Extract claims from articles using an LLM (Anthropic or OpenAI)."""
 
-    def __init__(self, api_key: str, model: str = "claude-sonnet-4-5-20250929"):
-        self.client = anthropic.Anthropic(api_key=api_key)
-        self.model = model
+    def __init__(self, llm: LLMClient):
+        self.llm = llm
 
     def extract(self, item: FeedItem) -> Optional[Source]:
         if not item.content or len(item.content.strip()) < 100:
@@ -92,12 +90,7 @@ class Extractor:
         )
 
         try:
-            response = self.client.messages.create(
-                model=self.model,
-                max_tokens=4096,
-                messages=[{"role": "user", "content": prompt}],
-            )
-            text = response.content[0].text
+            text = self.llm.complete(prompt, max_tokens=4096)
 
             # Strip markdown code fences if present
             if text.startswith("```"):

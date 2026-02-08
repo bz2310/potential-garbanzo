@@ -421,9 +421,12 @@ def _tree_health_longevity() -> ScenarioTree:
 
 def _write_default_config(config_path: Path) -> None:
     config = {
-        "anthropic": {
+        # LLM provider — choose ONE of "anthropic" or "openai"
+        "llm": {
+            "provider": "anthropic",  # or "openai"
             "api_key": "YOUR_API_KEY_HERE",
             "model": "claude-sonnet-4-5-20250929",
+            # For OpenAI, use: provider: openai, model: gpt-4o
         },
         "email": {
             "smtp_host": "smtp.gmail.com",
