@@ -450,6 +450,10 @@ def _write_default_config(config_path: Path) -> None:
         },
         "feeds": [
             # AI Foundation Models & Research
+            {"name": "Kevin Lu", "url": "https://kevinlu.ai/blog", "feed_type": "web",
+             "themes": ["ai_foundation_models"]},
+            {"name": "Delphi Intelligence", "url": "https://www.delphiintelligence.io/",
+             "feed_type": "web", "themes": ["ai_foundation_models", "ai_applications"]},
             {"name": "Situational Awareness (Leopold)", "url": "https://forourposterity.com/feed/",
              "feed_type": "rss", "themes": ["ai_foundation_models"]},
             {"name": "Zvi Mowshowitz", "url": "https://thezvi.substack.com/feed", "feed_type": "rss",
