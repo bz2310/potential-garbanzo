@@ -1,0 +1,5 @@
+# Runtime data (created by 'outlook init' and scans)
+data/
+__pycache__/
+*.pyc
+*.egg-info/
