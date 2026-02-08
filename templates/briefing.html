@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body {
+    font-family: 'Georgia', serif;
+    color: #1a1a1a;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    line-height: 1.6;
+    background: #fafafa;
+  }
+  h1 {
+    font-size: 22px;
+    border-bottom: 3px solid #1a1a1a;
+    padding-bottom: 8px;
+    margin-top: 0;
+  }
+  h2 {
+    font-size: 18px;
+    color: #333;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 6px;
+    margin-top: 40px;
+  }
+  h3 {
+    font-size: 15px;
+    color: #555;
+    margin-top: 25px;
+    margin-bottom: 8px;
+  }
+  .section-divider {
+    border: 0;
+    border-top: 2px solid #333;
+    margin: 40px 0;
+  }
+  .belief-change {
+    background: #fff8e1;
+    border-left: 4px solid #f59e0b;
+    padding: 12px 16px;
+    margin: 12px 0;
+    font-size: 14px;
+  }
+  .belief-change .arrow-up { color: #16a34a; font-weight: bold; }
+  .belief-change .arrow-down { color: #dc2626; font-weight: bold; }
+  .belief-change .reason { color: #555; font-style: italic; margin-top: 4px; }
+  .belief-change .siblings { color: #888; font-size: 13px; margin-top: 4px; }
+  .article {
+    background: #fff;
+    border: 1px solid #e5e5e5;
+    padding: 16px 20px;
+    margin: 16px 0;
+    border-radius: 4px;
+  }
+  .article h3 { margin-top: 0; }
+  .article .meta {
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 8px;
+  }
+  .article .meta a { color: #2563eb; }
+  .article .summary {
+    font-size: 14px;
+    line-height: 1.7;
+  }
+  .article .tags {
+    font-size: 12px;
+    color: #666;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid #eee;
+  }
+  .article .tags span {
+    background: #f0f0f0;
+    padding: 2px 8px;
+    border-radius: 3px;
+    margin-right: 4px;
+  }
+  .article .belief-trigger {
+    background: #fef3c7;
+    padding: 6px 10px;
+    margin-top: 8px;
+    font-size: 13px;
+    border-radius: 3px;
+  }
+  .tree-section {
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    background: #fff;
+    padding: 16px;
+    border: 1px solid #e5e5e5;
+    margin: 12px 0;
+    overflow-x: auto;
+  }
+  .tree-section .prob {
+    color: #2563eb;
+    font-weight: bold;
+  }
+  .tree-section .changed {
+    background: #fef9c3;
+  }
+  .tree-theme-label {
+    font-family: 'Georgia', serif;
+    font-size: 16px;
+    font-weight: bold;
+    color: #1a1a1a;
+    margin-top: 24px;
+    margin-bottom: 4px;
+  }
+  .history-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .history-table th {
+    background: #f5f5f5;
+    text-align: left;
+    padding: 6px 10px;
+    border-bottom: 2px solid #ddd;
+  }
+  .history-table td {
+    padding: 6px 10px;
+    border-bottom: 1px solid #eee;
+    vertical-align: top;
+  }
+  .history-table .up { color: #16a34a; }
+  .history-table .down { color: #dc2626; }
+  .action-list {
+    list-style: none;
+    padding: 0;
+  }
+  .action-list li {
+    padding: 6px 0;
+    font-size: 14px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .action-list .weight {
+    display: inline-block;
+    width: 50px;
+    font-weight: bold;
+    color: #2563eb;
+    font-family: 'Courier New', monospace;
+  }
+  .no-updates {
+    text-align: center;
+    color: #888;
+    padding: 40px;
+    font-style: italic;
+  }
+</style>
+</head>
+<body>
+
+<h1>Future Outlook Briefing &mdash; {{ data.scan_date }} {{ data.scan_time }}</h1>
+
+{% if not data.has_content %}
+<div class="no-updates">
+  <p>No significant updates this scan. All quiet.</p>
+  <p>{{ data.reasoning_history|length }} belief changes in the last 30 days.</p>
+</div>
+{% endif %}
+
+{# ═══════════════════════════════════════════════════════════════ #}
+{# SECTION 1: BELIEF CHANGES THIS SCAN                           #}
+{# ═══════════════════════════════════════════════════════════════ #}
+
+{% if data.belief_changes %}
+<hr class="section-divider">
+<h2>&#x26A1; Belief Changes This Scan ({{ data.belief_changes|length }})</h2>
+
+{% for delta in data.belief_changes %}
+<div class="belief-change">
+  <strong>{{ delta.tree_name }}</strong> / {{ delta.node_label }}<br>
+  {% if delta.delta > 0 %}
+  <span class="arrow-up">&#x25B2;</span> {{ delta.old_probability|pct }} &rarr; {{ delta.new_probability|pct }}
+  ({{ delta.delta|pct }} up)
+  {% elif delta.delta < 0 %}
+  <span class="arrow-down">&#x25BC;</span> {{ delta.old_probability|pct }} &rarr; {{ delta.new_probability|pct }}
+  ({{ delta.delta|pct }})
+  {% else %}
+  {{ delta.old_probability|pct }} (unchanged)
+  {% endif %}
+  <div class="reason">{{ delta.reason }}</div>
+  {% if delta.source_title %}
+  <div class="reason">Source: {{ delta.source_title }}{% if delta.source_url %} &mdash; <a href="{{ delta.source_url }}">link</a>{% endif %}</div>
+  {% endif %}
+  {% if delta.sibling_adjustments %}
+  <div class="siblings">
+    Rebalanced siblings:
+    {% for adj in delta.sibling_adjustments %}
+      {{ adj.label }} {{ adj.old|pct }}&rarr;{{ adj.new|pct }}{% if not loop.last %}, {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endfor %}
+{% endif %}
+
+{# ═══════════════════════════════════════════════════════════════ #}
+{# SECTION 2: SIGNIFICANT READS                                  #}
+{# ═══════════════════════════════════════════════════════════════ #}
+
+{% if data.significant_sources %}
+<hr class="section-divider">
+<h2>&#x1F4D6; Significant Reads ({{ data.significant_sources|length }})</h2>
+
+{% for source in data.significant_sources %}
+<div class="article">
+  <h3>{{ source.title }}</h3>
+  <div class="meta">
+    {{ source.author }}
+    {% if source.date_published %} &middot; {{ source.date_published }}{% endif %}
+    &middot; Significance: {{ source.significance }}/5
+    <br><a href="{{ source.url }}">{{ source.url }}</a>
+  </div>
+  <div class="summary">{{ source.summary }}</div>
+  <div class="tags">
+    Themes:
+    {% for theme in source.themes %}
+    <span>{{ theme }}</span>
+    {% endfor %}
+  </div>
+  {% for claim in source.claims %}
+    {% if claim.actionable and claim.action_suggestion %}
+    <div class="belief-trigger">
+      &#x1F3AF; Actionable: {{ claim.action_suggestion }}
+    </div>
+    {% endif %}
+  {% endfor %}
+</div>
+{% endfor %}
+{% endif %}
+
+{# ═══════════════════════════════════════════════════════════════ #}
+{# SECTION 3: 30-DAY REASONING HISTORY                           #}
+{# ═══════════════════════════════════════════════════════════════ #}
+
+{% if data.reasoning_history %}
+<hr class="section-divider">
+<h2>&#x1F4CA; Reasoning History (Last 30 Days &mdash; {{ data.reasoning_history|length }} changes)</h2>
+
+<table class="history-table">
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Tree / Node</th>
+      <th>Change</th>
+      <th>Reason</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for delta in data.reasoning_history|reverse %}
+    <tr>
+      <td>{{ delta.timestamp[:10] }}</td>
+      <td>{{ delta.tree_name }} / {{ delta.node_label }}</td>
+      <td>
+        {% if delta.delta > 0 %}
+        <span class="up">&#x25B2; {{ delta.old_probability|pct }}&rarr;{{ delta.new_probability|pct }}</span>
+        {% elif delta.delta < 0 %}
+        <span class="down">&#x25BC; {{ delta.old_probability|pct }}&rarr;{{ delta.new_probability|pct }}</span>
+        {% else %}
+        {{ delta.old_probability|pct }}
+        {% endif %}
+      </td>
+      <td>{{ delta.reason }}{% if delta.source_title %} <em>({{ delta.source_title }})</em>{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{# ═══════════════════════════════════════════════════════════════ #}
+{# SECTION 4: FULL SCENARIO TREES                                #}
+{# ═══════════════════════════════════════════════════════════════ #}
+
+<hr class="section-divider">
+<h2>&#x1F333; Current Scenario Trees</h2>
+
+{% set changed_ids = data.belief_changes | map(attribute='node_id') | list %}
+
+{% for name, tree in data.trees.items() %}
+<div class="tree-theme-label">{{ name | replace("_", " ") | upper }}</div>
+<div class="tree-section">
+{{ render_tree(tree.root, 0, changed_ids) }}
+</div>
+{% endfor %}
+
+{# ═══════════════════════════════════════════════════════════════ #}
+{# SECTION 5: PROBABILITY-WEIGHTED FAMILY ACTIONS                #}
+{# ═══════════════════════════════════════════════════════════════ #}
+
+{% if data.weighted_actions %}
+<hr class="section-divider">
+<h2>&#x1F3E0; Probability-Weighted Family Actions</h2>
+
+<ul class="action-list">
+  {% for item in data.weighted_actions %}
+  <li>
+    <span class="weight">{{ item.weight|pct }}</span>
+    {{ item.action }}
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+<hr class="section-divider">
+<p style="text-align: center; color: #aaa; font-size: 12px;">
+  Future Outlook Agent &mdash; Generated {{ data.scan_date }}
+</p>
+
+</body>
+</html>

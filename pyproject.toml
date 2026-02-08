@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "future-outlook-agent"
+version = "0.1.0"
+description = "Autonomous intelligence agent that scans think pieces, maintains probabilistic scenario trees, and emails daily briefings."
+requires-python = ">=3.10"
+dependencies = [
+    "pyyaml>=6.0",
+    "anthropic>=0.39.0",
+    "feedparser>=6.0",
+    "requests>=2.31",
+    "beautifulsoup4>=4.12",
+    "apscheduler>=3.10",
+    "jinja2>=3.1",
+]
+
+[project.scripts]
+outlook = "outlook.cli:main"
