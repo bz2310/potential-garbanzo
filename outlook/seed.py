@@ -450,35 +450,29 @@ def _write_default_config(config_path: Path) -> None:
         },
         "feeds": [
             # AI Foundation Models & Research
-            {"name": "Kevin Lu", "url": "https://kevinlu.io/feed", "feed_type": "rss",
-             "themes": ["ai_foundation_models"]},
-            {"name": "Delphi Intelligence", "url": "https://www.delphi.ai/feed", "feed_type": "rss",
-             "themes": ["ai_foundation_models", "ai_applications"]},
-            {"name": "Situational Awareness", "url": "https://situational-awareness.ai/feed", "feed_type": "rss",
-             "themes": ["ai_foundation_models"]},
+            {"name": "Situational Awareness (Leopold)", "url": "https://forourposterity.com/feed/",
+             "feed_type": "rss", "themes": ["ai_foundation_models"]},
             {"name": "Zvi Mowshowitz", "url": "https://thezvi.substack.com/feed", "feed_type": "rss",
              "themes": ["ai_foundation_models", "ai_applications"]},
             {"name": "Import AI (Jack Clark)", "url": "https://importai.substack.com/feed", "feed_type": "rss",
              "themes": ["ai_foundation_models", "ai_applications"]},
-            {"name": "Dwarkesh Patel", "url": "https://www.dwarkeshpatel.com/feed", "feed_type": "rss",
+            {"name": "Dwarkesh Patel", "url": "https://www.dwarkesh.com/feed", "feed_type": "rss",
              "themes": ["ai_foundation_models", "ai_applications"]},
-            {"name": "Epoch AI", "url": "https://epochai.org/blog/rss.xml", "feed_type": "rss",
+            {"name": "Epoch AI", "url": "https://epochai.substack.com/feed", "feed_type": "rss",
              "themes": ["ai_foundation_models", "ai_supply_chain"]},
             {"name": "r/MachineLearning", "url": "https://www.reddit.com/r/MachineLearning",
              "feed_type": "reddit", "themes": ["ai_foundation_models"]},
 
             # AI Applications & Robotics
-            {"name": "a16z blog", "url": "https://a16z.com/feed/", "feed_type": "rss",
+            {"name": "a16z blog", "url": "https://a16z.com/blog/feed/", "feed_type": "rss",
              "themes": ["ai_applications", "capital_markets"]},
-            {"name": "Stratechery", "url": "https://stratechery.com/feed/", "feed_type": "rss",
-             "themes": ["ai_applications"]},
             {"name": "r/LocalLLaMA", "url": "https://www.reddit.com/r/LocalLLaMA",
              "feed_type": "reddit", "themes": ["ai_foundation_models", "ai_applications"]},
             {"name": "IEEE Spectrum Robotics", "url": "https://spectrum.ieee.org/feeds/topic/robotics.rss",
              "feed_type": "rss", "themes": ["robotics"]},
 
             # AI Supply Chain
-            {"name": "SemiAnalysis", "url": "https://semianalysis.substack.com/feed", "feed_type": "rss",
+            {"name": "SemiAnalysis", "url": "https://www.semianalysis.com/feed", "feed_type": "rss",
              "themes": ["ai_supply_chain"]},
             {"name": "Fabricated Knowledge", "url": "https://www.fabricatedknowledge.com/feed",
              "feed_type": "rss", "themes": ["ai_supply_chain"]},
@@ -500,8 +494,6 @@ def _write_default_config(config_path: Path) -> None:
             # Energy
             {"name": "Ramez Naam", "url": "https://rameznaam.com/feed/", "feed_type": "rss",
              "themes": ["energy"]},
-            {"name": "Heatmap News", "url": "https://heatmap.news/feed", "feed_type": "rss",
-             "themes": ["energy"]},
 
             # Demographics
             {"name": "Our World in Data", "url": "https://ourworldindata.org/atom.xml", "feed_type": "rss",
@@ -512,7 +504,7 @@ def _write_default_config(config_path: Path) -> None:
              "feed_type": "rss", "themes": ["capital_markets"]},
 
             # Health & Longevity
-            {"name": "Peter Attia", "url": "https://peterattia.com/feed/", "feed_type": "rss",
+            {"name": "Peter Attia", "url": "https://peterattiamd.com/feed/", "feed_type": "rss",
              "themes": ["health_longevity"]},
             {"name": "STAT News", "url": "https://www.statnews.com/feed/", "feed_type": "rss",
              "themes": ["health_longevity"]},
@@ -528,10 +520,10 @@ def _write_default_config(config_path: Path) -> None:
             {"name": "Astral Codex Ten", "url": "https://www.astralcodexten.com/feed",
              "feed_type": "rss",
              "themes": ["ai_foundation_models", "ai_applications", "health_longevity"]},
-            {"name": "Robin Hanson", "url": "https://www.overcomingbias.com/feed",
+            {"name": "Robin Hanson", "url": "https://overcomingbias.substack.com/feed",
              "feed_type": "rss",
              "themes": ["ai_foundation_models", "demographics"]},
-            {"name": "Samo Burja (Bismarck Analysis)", "url": "https://www.bismarckanalysis.com/feed",
+            {"name": "Samo Burja (Bismarck Analysis)", "url": "https://brief.bismarckanalysis.com/feed",
              "feed_type": "rss", "themes": ["geopolitics"]},
         ],
     }
