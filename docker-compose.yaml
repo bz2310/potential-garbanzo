@@ -1,0 +1,8 @@
+services:
+  outlook:
+    build: .
+    restart: always
+    volumes:
+      - ./data:/app/data
+    environment:
+      - PYTHONUNBUFFERED=1

@@ -83,6 +83,59 @@ Each briefing contains (in order):
 
 If nothing significant happened, no email is sent.
 
+## Deployment
+
+### Option A: Docker (recommended)
+
+```bash
+python -m outlook init                 # creates data/ with config template
+# Edit data/config.yaml with API key + email settings
+docker compose up -d                   # runs forever, restarts on crash/reboot
+docker compose logs -f                 # tail logs
+```
+
+### Option B: systemd (bare Linux VPS)
+
+```bash
+pip install -e .
+python -m outlook init
+# Edit data/config.yaml
+
+sudo cp outlook.service /etc/systemd/system/  # see below
+sudo systemctl enable outlook
+sudo systemctl start outlook
+```
+
+Example `outlook.service`:
+```ini
+[Unit]
+Description=Future Outlook Agent
+After=network.target
+
+[Service]
+Type=simple
+User=your_username
+WorkingDirectory=/path/to/potential-garbanzo
+ExecStart=/path/to/python -m outlook run
+Restart=always
+RestartSec=30
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### Option C: cron (no long-running process)
+
+```bash
+pip install -e .
+python -m outlook init
+# Edit data/config.yaml
+bash install-cron.sh /path/to/potential-garbanzo /path/to/python3
+```
+
+This installs two cron jobs that each run a single scan and exit. No daemon needed.
+
 ## Architecture
 
 ```

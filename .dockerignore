@@ -1,0 +1,6 @@
+.git
+__pycache__
+*.pyc
+data/briefings/
+data/sources/
+data/.seen.yaml
