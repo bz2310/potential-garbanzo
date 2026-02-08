@@ -158,11 +158,13 @@ class Extractor:
         rejected: list[Source] = []
         for item in items:
             source = self.extract(item)
-            logger.info(f"Title: {source.title} URL: {source.url}")
+            
             if source and source.significance >= significance_threshold:
+                logger.info(f"Title: {source.title} URL: {source.url}")
                 kept.append(source)
                 logger.info(f"Kept: {source.title} (significance {source.significance})")
             elif source:
+                logger.info(f"Title: {source.title} URL: {source.url}")
                 rejected.append(source)
                 logger.info(f"Below threshold: {source.title} (significance {source.significance})")
         return kept, rejected

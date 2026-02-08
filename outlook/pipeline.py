@@ -62,10 +62,6 @@ def run_scan_pipeline(project_root: Path, scan_time: str = "AM") -> None:
     items = scanner.scan_all(feeds, lookback_hours=lookback_hours)
     logger.info(f"Found {len(items)} new items")
 
-    if not items:
-        logger.info("No new items. Skipping email.")
-        return
-
     # 3. Extract claims
     logger.info("Extracting claims...")
     sources, rejected_sources = extractor.extract_batch(items, significance_threshold=significance_threshold)
@@ -84,11 +80,6 @@ def run_scan_pipeline(project_root: Path, scan_time: str = "AM") -> None:
     # Save updated trees
     for name, tree in trees.items():
         scenario_engine.save_tree(tree)
-
-    # 5. Build briefing
-    if not sources and not deltas:
-        logger.info("Nothing significant. No email sent.")
-        return
 
     data = briefing_engine.build_briefing(deltas, sources, rejected_sources, scan_time=scan_time)
     html = briefing_engine.render_html(data)
