@@ -130,25 +130,28 @@ class Scanner:
             if not url or self._is_seen(url):
                 continue
 
-            # Check date
+            # Check date — skip entries with no parseable date
             published = entry.get("published", "")
+            pub_dt = None
             if published:
                 try:
-                    dt = parsedate_to_datetime(published)
-                    if dt.tzinfo is None:
-                        dt = dt.replace(tzinfo=timezone.utc)
-                    if dt < cutoff:
-                        continue
-                    published = dt.isoformat()
+                    pub_dt = parsedate_to_datetime(published)
                 except (TypeError, ValueError):
-                    # Try ISO format (Atom feeds)
                     try:
-                        dt = datetime.fromisoformat(published.replace("Z", "+00:00"))
-                        if dt < cutoff:
-                            continue
-                        published = dt.isoformat()
+                        pub_dt = datetime.fromisoformat(published.replace("Z", "+00:00"))
                     except (TypeError, ValueError):
                         pass
+
+            if pub_dt:
+                if pub_dt.tzinfo is None:
+                    pub_dt = pub_dt.replace(tzinfo=timezone.utc)
+                if pub_dt < cutoff:
+                    continue
+                published = pub_dt.isoformat()
+            else:
+                # No date or unparseable — skip to avoid dumping old articles
+                logger.debug(f"Skipping {url} — no parseable date")
+                continue
 
             content = entry.get("content", "")
             if content:
@@ -301,8 +304,19 @@ class Scanner:
 
         return items[:feed.max_items]
 
+    # Paths that are almost never articles
+    _NON_ARTICLE_PATHS = {
+        "about", "contact", "privacy", "terms", "tag", "tags", "category",
+        "categories", "author", "authors", "page", "login", "signup",
+        "search", "faq", "subscribe", "newsletter", "careers", "team",
+        "advertise", "sitemap", "feed", "rss", "legal", "cookies",
+        "archive", "archives",
+    }
+
     def _scan_web(self, feed: FeedConfig) -> list[FeedItem]:
         """Scrape a blog/index page, discover article links, fetch unseen ones."""
+        from urllib.parse import urlparse, urljoin
+
         items: list[FeedItem] = []
         try:
             resp = requests.get(
@@ -316,36 +330,75 @@ class Scanner:
             return items
 
         soup = BeautifulSoup(resp.text, "html.parser")
-
-        # Extract article links from the page
-        from urllib.parse import urlparse, urljoin
         base_domain = urlparse(feed.url).netloc
-        article_urls: list[str] = []
+        base_path = urlparse(feed.url).path.rstrip("/")
+        candidate_urls: list[str] = []
 
         for a_tag in soup.find_all("a", href=True):
             href = urljoin(feed.url, a_tag["href"])
             parsed = urlparse(href)
-            # Same domain, has a path beyond /, not an anchor/asset link
-            if (parsed.netloc == base_domain
-                    and len(parsed.path.strip("/").split("/")) >= 1
-                    and parsed.path != "/"
-                    and not parsed.path.endswith((".css", ".js", ".png", ".jpg", ".svg", ".xml"))
-                    and "#" not in parsed.path):
-                clean_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
-                if clean_url not in article_urls:
-                    article_urls.append(clean_url)
+            path = parsed.path.rstrip("/")
+            segments = [s for s in path.split("/") if s]
 
-        # Fetch unseen article pages
-        for url in article_urls:
+            if parsed.netloc != base_domain or path == "/" or not segments:
+                continue
+            if parsed.path.endswith((".css", ".js", ".png", ".jpg", ".svg", ".xml", ".pdf")):
+                continue
+
+            # Skip non-article paths
+            if segments[0].lower() in self._NON_ARTICLE_PATHS:
+                continue
+
+            # Require either 2+ path segments (e.g. /blog/my-post) or a long slug
+            # (e.g. /my-really-interesting-article-about-ai)
+            is_deep = len(segments) >= 2
+            is_slug = len(segments[-1]) > 20
+            if not is_deep and not is_slug:
+                continue
+
+            clean_url = f"{parsed.scheme}://{parsed.netloc}{path}"
+            # Don't include the feed URL itself
+            if clean_url.rstrip("/") == feed.url.rstrip("/"):
+                continue
+            if clean_url not in candidate_urls:
+                candidate_urls.append(clean_url)
+
+        # Blog pages typically list newest first — only try the first 5
+        max_fetches = min(5, feed.max_items)
+        fetched = 0
+        for url in candidate_urls:
+            if fetched >= max_fetches:
+                break
             if self._is_seen(url):
                 continue
-            text = self._fetch_page_text(url)
-            if not text or len(text.strip()) < 200:
+            fetched += 1
+
+            # Fetch the article page and get its own title
+            try:
+                art_resp = requests.get(
+                    url,
+                    timeout=self.request_timeout,
+                    headers={"User-Agent": "FutureOutlookAgent/1.0"},
+                )
+                art_resp.raise_for_status()
+                art_soup = BeautifulSoup(art_resp.text, "html.parser")
+                for tag in art_soup(["script", "style", "nav", "footer", "header"]):
+                    tag.decompose()
+                title_tag = art_soup.find("title")
+                title = title_tag.get_text(strip=True) if title_tag else feed.name
+                text = art_soup.get_text(separator="\n", strip=True)
+            except Exception:
+                logger.exception(f"Failed to fetch article: {url}")
                 self._mark_seen(url)
                 continue
+
+            if len(text.strip()) < 200:
+                self._mark_seen(url)
+                continue
+
             items.append(FeedItem(
                 url=url,
-                title=soup.find("title").get_text(strip=True) if soup.find("title") else feed.name,
+                title=title,
                 author=feed.name,
                 published=datetime.now(timezone.utc).isoformat(),
                 content=text[:15000],
@@ -353,8 +406,6 @@ class Scanner:
                 themes=feed.themes,
             ))
             self._mark_seen(url)
-            if len(items) >= feed.max_items:
-                break
 
         return items
 
