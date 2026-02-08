@@ -147,22 +147,33 @@ class ScenarioEngine:
         )
 
     def combined_action_summary(self) -> list[dict]:
-        """Weighted actions across ALL trees, with scenario context."""
+        """Weighted actions across ALL trees, grouped by theme."""
         actions: dict[str, dict] = {}
         for name in self.list_trees():
             tree = self.load_tree(name)
             for scenario in tree.terminal_scenarios():
                 for action in scenario.get("actions", []):
                     if action not in actions:
-                        actions[action] = {"weight": 0.0, "scenarios": []}
+                        actions[action] = {"weight": 0.0, "tree_weights": {}, "context": ""}
                     actions[action]["weight"] += scenario["probability"]
-                    path = scenario.get("path", "")
-                    ctx = f"{name.replace('_', ' ')}: {path}"
-                    if ctx not in actions[action]["scenarios"]:
-                        actions[action]["scenarios"].append(ctx)
-        result = []
+                    actions[action]["tree_weights"][name] = (
+                        actions[action]["tree_weights"].get(name, 0) + scenario["probability"]
+                    )
+                    if not actions[action]["context"]:
+                        actions[action]["context"] = f"{name.replace('_', ' ')}: {scenario.get('path', '')}"
+
+        # Assign each action to its dominant tree
+        grouped: dict[str, list[dict]] = {}
         for a, info in actions.items():
-            # Show the top scenario driving this action
-            context = info["scenarios"][0] if info["scenarios"] else ""
-            result.append({"action": a, "weight": info["weight"], "context": context})
-        return sorted(result, key=lambda x: x["weight"], reverse=True)
+            top_tree = max(info["tree_weights"], key=info["tree_weights"].get)
+            display_name = top_tree.replace("_", " ").title()
+            grouped.setdefault(display_name, []).append({
+                "action": a, "weight": info["weight"], "context": info["context"]
+            })
+
+        # Sort actions within each group by weight, then sort groups
+        result = []
+        for category, items in sorted(grouped.items()):
+            items.sort(key=lambda x: x["weight"], reverse=True)
+            result.append({"category": category, "actions": items})
+        return result

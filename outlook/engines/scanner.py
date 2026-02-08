@@ -20,6 +20,8 @@ from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_LOOKBACK_HOURS = 12
+
 
 @dataclass
 class FeedItem:
@@ -81,7 +83,7 @@ class Scanner:
         h = hashlib.sha256(url.encode()).hexdigest()[:16]
         return h in self._seen
 
-    def scan_all(self, feeds: list[FeedConfig], lookback_hours: int = 12) -> list[FeedItem]:
+    def scan_all(self, feeds: list[FeedConfig], lookback_hours: int = DEFAULT_LOOKBACK_HOURS) -> list[FeedItem]:
         all_items: list[FeedItem] = []
         for feed in feeds:
             try:

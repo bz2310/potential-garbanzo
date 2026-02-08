@@ -6,6 +6,7 @@ from pathlib import Path
 
 import yaml
 
+from outlook.engines.scanner import DEFAULT_LOOKBACK_HOURS
 from outlook.engines.theme_engine import ThemeEngine
 from outlook.models.scenario import ScenarioNode, ScenarioTree
 
@@ -446,7 +447,7 @@ def _write_default_config(config_path: Path) -> None:
         "scanning": {
             "significance_threshold": 4,
             "max_articles_per_source": 10,
-            "lookback_hours": 12,
+            "lookback_hours": DEFAULT_LOOKBACK_HOURS,
         },
         "feeds": [
             # AI Foundation Models & Research
