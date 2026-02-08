@@ -297,8 +297,10 @@
 <hr class="section-divider">
 <h2>&#x1F3E0; Probability-Weighted Family Actions</h2>
 
+{% for group in data.weighted_actions %}
+<h3 style="font-size: 14px; color: #555; margin-top: 16px; margin-bottom: 6px;">{{ group.category }}</h3>
 <ul class="action-list">
-  {% for item in data.weighted_actions %}
+  {% for item in group.actions %}
   <li>
     <span class="weight">{{ item.weight|pct }}</span>
     {{ item.action }}
@@ -308,6 +310,7 @@
   </li>
   {% endfor %}
 </ul>
+{% endfor %}
 {% endif %}
 
 {# ═══════════════════════════════════════════════════════════════ #}

@@ -15,7 +15,7 @@ from outlook.engines.briefing_engine import BriefingEngine
 from outlook.engines.emailer import Emailer
 from outlook.engines.extractor import Extractor
 from outlook.engines.llm_client import create_llm_client
-from outlook.engines.scanner import FeedConfig, Scanner
+from outlook.engines.scanner import DEFAULT_LOOKBACK_HOURS, FeedConfig, Scanner
 from outlook.engines.scenario_engine import ScenarioEngine
 from outlook.models.belief import BeliefLog
 
@@ -43,7 +43,7 @@ def run_scan_pipeline(project_root: Path, scan_time: str = "AM") -> None:
 
     llm = create_llm_client(config)
     significance_threshold = config.get("scanning", {}).get("significance_threshold", 4)
-    lookback_hours = config.get("scanning", {}).get("lookback_hours", 12)
+    lookback_hours = config.get("scanning", {}).get("lookback_hours", DEFAULT_LOOKBACK_HOURS)
 
     # 1. Initialize components
     belief_log = BeliefLog(path=beliefs_dir / "log.yaml")
