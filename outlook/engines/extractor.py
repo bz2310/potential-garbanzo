@@ -15,20 +15,23 @@ logger = logging.getLogger(__name__)
 
 EXTRACTION_PROMPT = """You are an intelligence analyst extracting structured claims from articles.
 
-The reader is a strategically-minded parent planning for a family of 6 (2 adults, 4+ children).
+The reader is a strategically-minded quant.
 She tracks 9 thematic domains to orient her family for survivability, durable control/power,
-and health/longevity.
+and health/longevity, especially in the rapidly-changing world shaped by AI. 
 
 The 9 themes are:
-1. ai_foundation_models — capability trajectory, scaling, alignment
+1. ai_foundation_models — capability trajectory, scaling, alignment, new developments (world models, etc.)
 2. ai_applications — economic impact, labor displacement, new industries
-3. ai_supply_chain — chips, compute, NVIDIA, TSMC, export controls
+3. ai_supply_chain — chips, compute, NVIDIA, TSMC, export controls, new processor component developments
 4. robotics — humanoids, drones, physical automation
-5. geopolitics — US-China, alliances, conflict, governance
+5. geopolitics — US vs China AI and robotics developments
 6. energy — solar, nuclear, grid, AI energy demand
-7. demographics — fertility, aging, migration, workforce
-8. capital_markets — asset regimes, inflation, dollar, crypto
-9. health_longevity — GLP-1s, gene therapy, longevity, biotech, actionable health findings
+7. capital_markets — asset regimes, inflation, dollar, crypto
+8. health_longevity — GLP-1s, gene therapy, longevity, biotech, actionable health findings
+
+IMPORTANT for all articles: make sure the articles are either 1) some think-piece talking about a kind of novel long-range prediction about the world. 
+Or 2) some news about a concrete development (new AI model, new chip, new geopolitical event, new drug approval, etc.) that have a significant impact on the future.
+Ignore purely theoretical articles that don't have concrete implications for the future.
 
 IMPORTANT for health_longevity: Focus on findings that are practically actionable for a
 family — new treatments available or coming to market, dietary/supplement evidence with
@@ -54,7 +57,7 @@ Return ONLY valid JSON with this structure:
 {{
   "title": "...",
   "author": "...",
-  "summary": "multi-paragraph summary",
+  "summary": "bullet-pointed summary of novel, important points",
   "date_published": "YYYY-MM-DD or empty string",
   "themes": ["theme1", "theme2"],
   "credibility_notes": "brief source credibility assessment",
@@ -152,6 +155,7 @@ class Extractor:
         sources: list[Source] = []
         for item in items:
             source = self.extract(item)
+            logger.info(f"Title: {source.title} URL: {source.url}")
             if source and source.significance >= significance_threshold:
                 sources.append(source)
                 logger.info(f"Kept: {source.title} (significance {source.significance})")
