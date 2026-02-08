@@ -302,22 +302,59 @@ class Scanner:
         return items[:feed.max_items]
 
     def _scan_web(self, feed: FeedConfig) -> list[FeedItem]:
+        """Scrape a blog/index page, discover article links, fetch unseen ones."""
         items: list[FeedItem] = []
-        text = self._fetch_page_text(feed.url)
-        if not text:
+        try:
+            resp = requests.get(
+                feed.url,
+                timeout=self.request_timeout,
+                headers={"User-Agent": "FutureOutlookAgent/1.0"},
+            )
+            resp.raise_for_status()
+        except Exception:
+            logger.exception(f"Failed to fetch web page: {feed.url}")
             return items
 
-        if not self._is_seen(feed.url):
+        soup = BeautifulSoup(resp.text, "html.parser")
+
+        # Extract article links from the page
+        from urllib.parse import urlparse, urljoin
+        base_domain = urlparse(feed.url).netloc
+        article_urls: list[str] = []
+
+        for a_tag in soup.find_all("a", href=True):
+            href = urljoin(feed.url, a_tag["href"])
+            parsed = urlparse(href)
+            # Same domain, has a path beyond /, not an anchor/asset link
+            if (parsed.netloc == base_domain
+                    and len(parsed.path.strip("/").split("/")) >= 1
+                    and parsed.path != "/"
+                    and not parsed.path.endswith((".css", ".js", ".png", ".jpg", ".svg", ".xml"))
+                    and "#" not in parsed.path):
+                clean_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+                if clean_url not in article_urls:
+                    article_urls.append(clean_url)
+
+        # Fetch unseen article pages
+        for url in article_urls:
+            if self._is_seen(url):
+                continue
+            text = self._fetch_page_text(url)
+            if not text or len(text.strip()) < 200:
+                self._mark_seen(url)
+                continue
             items.append(FeedItem(
-                url=feed.url,
-                title=feed.name,
+                url=url,
+                title=soup.find("title").get_text(strip=True) if soup.find("title") else feed.name,
                 author=feed.name,
                 published=datetime.now(timezone.utc).isoformat(),
                 content=text[:15000],
                 source_name=feed.name,
                 themes=feed.themes,
             ))
-            self._mark_seen(feed.url)
+            self._mark_seen(url)
+            if len(items) >= feed.max_items:
+                break
 
         return items
 

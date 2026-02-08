@@ -7,6 +7,8 @@ import logging
 import sys
 from pathlib import Path
 
+import requests
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SCENARIOS_DIR = PROJECT_ROOT / "data" / "scenarios"
 SOURCES_DIR = PROJECT_ROOT / "data" / "sources"
@@ -151,6 +153,82 @@ def cmd_themes(args):
             print(f"    > {f}")
 
 
+def cmd_verify_feeds(args):
+    """Test all configured feeds and report which work."""
+    import xml.etree.ElementTree as ET
+    from outlook.pipeline import load_config
+
+    config = load_config(PROJECT_ROOT)
+    feeds = config.get("feeds", [])
+    if not feeds:
+        print("No feeds configured. Run 'outlook init' first.")
+        return
+
+    ok_count = 0
+    fail_count = 0
+    timeout = 15
+
+    print(f"\nVerifying {len(feeds)} feeds...\n")
+    print(f"{'Status':<8} {'Type':<7} {'Name':<35} {'Details'}")
+    print("-" * 90)
+
+    for f in feeds:
+        name = f.get("name", "?")
+        url = f.get("url", "")
+        ftype = f.get("feed_type", "rss")
+
+        try:
+            if ftype == "reddit":
+                test_url = url.rstrip("/") + "/hot.json?limit=1"
+            else:
+                test_url = url
+
+            resp = requests.get(
+                test_url,
+                timeout=timeout,
+                headers={"User-Agent": "FutureOutlookAgent/1.0"},
+            )
+            resp.raise_for_status()
+            status = resp.status_code
+            ctype = resp.headers.get("content-type", "")[:40]
+
+            detail = ""
+            if ftype == "rss":
+                try:
+                    root = ET.fromstring(resp.content)
+                    items = list(root.iter("item"))
+                    entries = list(root.iter("{http://www.w3.org/2005/Atom}entry"))
+                    count = len(items) + len(entries)
+                    detail = f"{status} | {count} entries | {ctype}"
+                except ET.ParseError:
+                    detail = f"{status} | XML parse error | {ctype}"
+                    fail_count += 1
+                    print(f"{'FAIL':<8} {ftype:<7} {name:<35} {detail}")
+                    continue
+            elif ftype == "reddit":
+                data = resp.json()
+                count = len(data.get("data", {}).get("children", []))
+                detail = f"{status} | {count} posts | reddit JSON"
+            else:
+                from bs4 import BeautifulSoup as BS
+                soup = BS(resp.text, "html.parser")
+                title = soup.find("title")
+                title_text = title.get_text(strip=True)[:50] if title else "(no title)"
+                links = len(soup.find_all("a", href=True))
+                detail = f"{status} | {links} links | {title_text}"
+
+            ok_count += 1
+            print(f"{'OK':<8} {ftype:<7} {name:<35} {detail}")
+
+        except Exception as e:
+            fail_count += 1
+            err = str(e)[:60]
+            print(f"{'FAIL':<8} {ftype:<7} {name:<35} {err}")
+
+    print("-" * 90)
+    print(f"\n  {ok_count} OK, {fail_count} FAILED out of {len(feeds)} feeds\n")
+
+
 def cmd_sources(args):
     """List ingested sources."""
     from outlook.models.source import Source
@@ -201,6 +279,8 @@ def build_parser():
 
     sub.add_parser("themes", help="Show thematic map")
 
+    sub.add_parser("verify-feeds", help="Test all configured feeds and report status")
+
     p = sub.add_parser("sources", help="List ingested sources")
     p.add_argument("--theme", default=None)
 
@@ -225,6 +305,7 @@ def main(argv=None):
         "tree": cmd_tree_show,
         "beliefs": cmd_beliefs,
         "themes": cmd_themes,
+        "verify-feeds": cmd_verify_feeds,
         "sources": cmd_sources,
     }
     cmds[args.command](args)

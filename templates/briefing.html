@@ -217,7 +217,7 @@
     &middot; Significance: {{ source.significance }}/5
     <br><a href="{{ source.url }}">{{ source.url }}</a>
   </div>
-  <div class="summary">{{ source.summary }}</div>
+  <div class="summary">{{ source.summary | safe }}</div>
   <div class="tags">
     Themes:
     {% for theme in source.themes %}
@@ -285,7 +285,7 @@
 {% for name, tree in data.trees.items() %}
 <div class="tree-theme-label">{{ name | replace("_", " ") | upper }}</div>
 <div class="tree-section">
-{{ render_tree(tree.root, 0, changed_ids) }}
+{{ render_tree(tree.root, 0, changed_ids) | safe }}
 </div>
 {% endfor %}
 

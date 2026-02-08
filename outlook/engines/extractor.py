@@ -28,7 +28,14 @@ The 9 themes are:
 6. energy — solar, nuclear, grid, AI energy demand
 7. demographics — fertility, aging, migration, workforce
 8. capital_markets — asset regimes, inflation, dollar, crypto
-9. health_longevity — GLP-1s, gene therapy, longevity, biotech
+9. health_longevity — GLP-1s, gene therapy, longevity, biotech, actionable health findings
+
+IMPORTANT for health_longevity: Focus on findings that are practically actionable for a
+family — new treatments available or coming to market, dietary/supplement evidence with
+human trial data, screening recommendations, drug approvals, clinical guidelines. Ignore
+purely theoretical research (animal studies, mechanistic discoveries in model organisms)
+unless they have near-term clinical implications. Score theoretical/animal studies as
+significance 1-2 (noise/minor).
 
 For the article below, extract:
 

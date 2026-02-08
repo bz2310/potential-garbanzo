@@ -454,7 +454,7 @@ def _write_default_config(config_path: Path) -> None:
              "themes": ["ai_foundation_models"]},
             {"name": "Delphi Intelligence", "url": "https://www.delphiintelligence.io/",
              "feed_type": "web", "themes": ["ai_foundation_models", "ai_applications"]},
-            {"name": "Situational Awareness (Leopold)", "url": "https://forourposterity.com/feed/",
+            {"name": "Situational Awareness (Leopold)", "url": "https://www.forourposterity.com/rss/",
              "feed_type": "rss", "themes": ["ai_foundation_models"]},
             {"name": "Zvi Mowshowitz", "url": "https://thezvi.substack.com/feed", "feed_type": "rss",
              "themes": ["ai_foundation_models", "ai_applications"]},
@@ -468,7 +468,7 @@ def _write_default_config(config_path: Path) -> None:
              "feed_type": "reddit", "themes": ["ai_foundation_models"]},
 
             # AI Applications & Robotics
-            {"name": "a16z blog", "url": "https://a16z.com/blog/feed/", "feed_type": "rss",
+            {"name": "a16z blog", "url": "https://a16z.com/blog", "feed_type": "web",
              "themes": ["ai_applications", "capital_markets"]},
             {"name": "r/LocalLLaMA", "url": "https://www.reddit.com/r/LocalLLaMA",
              "feed_type": "reddit", "themes": ["ai_foundation_models", "ai_applications"]},
@@ -503,9 +503,19 @@ def _write_default_config(config_path: Path) -> None:
             {"name": "Our World in Data", "url": "https://ourworldindata.org/atom.xml", "feed_type": "rss",
              "themes": ["demographics", "health_longevity"]},
 
-            # Capital Markets
+            # Capital Markets & Bloomberg
             {"name": "Matt Levine (Money Stuff)", "url": "https://www.bloomberg.com/opinion/authors/ARbTQlRLRjE/matthew-s-levine.rss",
              "feed_type": "rss", "themes": ["capital_markets"]},
+            {"name": "Bloomberg Markets", "url": "https://feeds.bloomberg.com/markets/news.rss",
+             "feed_type": "rss", "themes": ["capital_markets"]},
+            {"name": "Bloomberg Technology", "url": "https://feeds.bloomberg.com/technology/news.rss",
+             "feed_type": "rss", "themes": ["ai_applications", "ai_supply_chain"]},
+            {"name": "Bloomberg Politics", "url": "https://feeds.bloomberg.com/politics/news.rss",
+             "feed_type": "rss", "themes": ["geopolitics"]},
+            {"name": "Bloomberg Economics", "url": "https://feeds.bloomberg.com/economics/news.rss",
+             "feed_type": "rss", "themes": ["capital_markets", "demographics"]},
+            {"name": "Bloomberg Opinion", "url": "https://feeds.bloomberg.com/bview/news.rss",
+             "feed_type": "rss", "themes": ["capital_markets", "geopolitics"]},
 
             # Health & Longevity
             {"name": "Peter Attia", "url": "https://peterattiamd.com/feed/", "feed_type": "rss",
