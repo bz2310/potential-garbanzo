@@ -150,15 +150,19 @@ class Extractor:
         )
         return source
 
-    def extract_batch(self, items: list[FeedItem], significance_threshold: int = 4) -> list[Source]:
-        """Extract claims from multiple items, keeping only those above threshold."""
-        sources: list[Source] = []
+    def extract_batch(
+        self, items: list[FeedItem], significance_threshold: int = 4
+    ) -> tuple[list[Source], list[Source]]:
+        """Extract claims from multiple items. Returns (kept, rejected)."""
+        kept: list[Source] = []
+        rejected: list[Source] = []
         for item in items:
             source = self.extract(item)
             logger.info(f"Title: {source.title} URL: {source.url}")
             if source and source.significance >= significance_threshold:
-                sources.append(source)
+                kept.append(source)
                 logger.info(f"Kept: {source.title} (significance {source.significance})")
             elif source:
+                rejected.append(source)
                 logger.info(f"Below threshold: {source.title} (significance {source.significance})")
-        return sources
+        return kept, rejected

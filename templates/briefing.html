@@ -217,7 +217,7 @@
     &middot; Significance: {{ source.significance }}/5
     <br><a href="{{ source.url }}">{{ source.url }}</a>
   </div>
-  <div class="summary">{{ source.summary | safe }}</div>
+  <div class="summary">{{ source.summary | nl2br | safe }}</div>
   <div class="tags">
     Themes:
     {% for theme in source.themes %}
@@ -302,9 +302,33 @@
   <li>
     <span class="weight">{{ item.weight|pct }}</span>
     {{ item.action }}
+    {% if item.context %}
+    <div style="font-size: 12px; color: #888; margin-top: 2px;">{{ item.context }}</div>
+    {% endif %}
   </li>
   {% endfor %}
 </ul>
+{% endif %}
+
+{# ═══════════════════════════════════════════════════════════════ #}
+{# SECTION 6: ALSO CRAWLED (BELOW THRESHOLD)                     #}
+{# ═══════════════════════════════════════════════════════════════ #}
+
+{% if data.rejected_sources %}
+<hr class="section-divider">
+<h2>Also Crawled (Below Threshold)</h2>
+
+{% for source_name, items in data.rejected_by_source.items() %}
+<h3 style="font-size: 14px; color: #666; margin-top: 16px; margin-bottom: 4px;">{{ source_name }}</h3>
+<ul style="list-style: none; padding: 0; margin: 0;">
+  {% for s in items %}
+  <li style="font-size: 13px; color: #666; padding: 3px 0; border-bottom: 1px solid #f0f0f0;">
+    <span style="color: #999;">[{{ s.significance }}/5]</span>
+    <a href="{{ s.url }}" style="color: #2563eb;">{{ s.title }}</a>
+  </li>
+  {% endfor %}
+</ul>
+{% endfor %}
 {% endif %}
 
 <hr class="section-divider">

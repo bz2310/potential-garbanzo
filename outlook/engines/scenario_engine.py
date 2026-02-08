@@ -147,15 +147,22 @@ class ScenarioEngine:
         )
 
     def combined_action_summary(self) -> list[dict]:
-        """Weighted actions across ALL trees."""
-        actions: dict[str, float] = {}
+        """Weighted actions across ALL trees, with scenario context."""
+        actions: dict[str, dict] = {}
         for name in self.list_trees():
             tree = self.load_tree(name)
             for scenario in tree.terminal_scenarios():
                 for action in scenario.get("actions", []):
-                    actions[action] = actions.get(action, 0) + scenario["probability"]
-        return sorted(
-            [{"action": a, "weight": w} for a, w in actions.items()],
-            key=lambda x: x["weight"],
-            reverse=True,
-        )
+                    if action not in actions:
+                        actions[action] = {"weight": 0.0, "scenarios": []}
+                    actions[action]["weight"] += scenario["probability"]
+                    path = scenario.get("path", "")
+                    ctx = f"{name.replace('_', ' ')}: {path}"
+                    if ctx not in actions[action]["scenarios"]:
+                        actions[action]["scenarios"].append(ctx)
+        result = []
+        for a, info in actions.items():
+            # Show the top scenario driving this action
+            context = info["scenarios"][0] if info["scenarios"] else ""
+            result.append({"action": a, "weight": info["weight"], "context": context})
+        return sorted(result, key=lambda x: x["weight"], reverse=True)
