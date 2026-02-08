@@ -43,6 +43,18 @@ class BriefingData:
     # Section 5: weighted family actions
     weighted_actions: list[dict] = field(default_factory=list)
 
+    # Section 6: rejected articles (below threshold)
+    rejected_sources: list[Source] = field(default_factory=list)
+
+    @property
+    def rejected_by_source(self) -> dict[str, list[Source]]:
+        """Group rejected sources by author/source name."""
+        groups: dict[str, list[Source]] = {}
+        for s in self.rejected_sources:
+            key = s.author or "Unknown"
+            groups.setdefault(key, []).append(s)
+        return groups
+
     @property
     def n_articles(self) -> int:
         return len(self.significant_sources)
@@ -70,6 +82,7 @@ class BriefingEngine:
         self,
         new_deltas: list[BeliefDelta],
         significant_sources: list[Source],
+        rejected_sources: list[Source] | None = None,
         scan_time: str = "AM",
     ) -> BriefingData:
         data = BriefingData(scan_time=scan_time)
@@ -79,6 +92,9 @@ class BriefingEngine:
 
         # Section 2: significant articles
         data.significant_sources = significant_sources
+
+        # Section 6: rejected articles
+        data.rejected_sources = rejected_sources or []
 
         # Section 3: 30-day reasoning history
         data.reasoning_history = self.belief_log.recent(days=30)
@@ -100,6 +116,7 @@ class BriefingEngine:
         env.filters["pct"] = lambda v: f"{v:.0%}"
         env.filters["pct1"] = lambda v: f"{v:.1%}"
         env.filters["delta_arrow"] = lambda d: "\u25b2" if d > 0 else "\u25bc" if d < 0 else "="
+        env.filters["nl2br"] = lambda s: s.replace("\n", "<br>\n") if s else s
         template = env.get_template("briefing.html")
         return template.render(data=data, render_tree=self._render_tree_html)
 

@@ -68,8 +68,8 @@ def run_scan_pipeline(project_root: Path, scan_time: str = "AM") -> None:
 
     # 3. Extract claims
     logger.info("Extracting claims...")
-    sources = extractor.extract_batch(items, significance_threshold=significance_threshold)
-    logger.info(f"{len(sources)} sources above significance threshold")
+    sources, rejected_sources = extractor.extract_batch(items, significance_threshold=significance_threshold)
+    logger.info(f"{len(sources)} above threshold, {len(rejected_sources)} below threshold")
 
     # Save sources
     for source in sources:
@@ -90,7 +90,7 @@ def run_scan_pipeline(project_root: Path, scan_time: str = "AM") -> None:
         logger.info("Nothing significant. No email sent.")
         return
 
-    data = briefing_engine.build_briefing(deltas, sources, scan_time=scan_time)
+    data = briefing_engine.build_briefing(deltas, sources, rejected_sources, scan_time=scan_time)
     html = briefing_engine.render_html(data)
     subject = briefing_engine.render_subject(data)
 
