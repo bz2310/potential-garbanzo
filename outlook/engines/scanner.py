@@ -1,15 +1,19 @@
-"""Feed scanner — crawl RSS feeds, subreddits, and web pages for new content."""
+"""Feed scanner — crawl RSS feeds, subreddits, and web pages for new content.
+
+Uses stdlib xml.etree instead of feedparser to avoid sgmllib3k build issues on Python 3.11+.
+"""
 
 from __future__ import annotations
 
 import hashlib
 import logging
+import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 from typing import Optional
 
-import feedparser
 import requests
 import yaml
 from bs4 import BeautifulSoup
@@ -97,31 +101,56 @@ class Scanner:
         return all_items
 
     def _scan_rss(self, feed: FeedConfig, lookback_hours: int) -> list[FeedItem]:
+        """Parse RSS/Atom feeds using stdlib xml.etree."""
         items: list[FeedItem] = []
-        parsed = feedparser.parse(feed.url)
         cutoff = datetime.now(timezone.utc) - timedelta(hours=lookback_hours)
 
-        for entry in parsed.entries[: feed.max_items]:
-            url = entry.get("link", "")
+        try:
+            resp = requests.get(
+                feed.url,
+                timeout=self.request_timeout,
+                headers={"User-Agent": "FutureOutlookAgent/1.0"},
+            )
+            resp.raise_for_status()
+        except Exception:
+            logger.exception(f"Failed to fetch RSS: {feed.url}")
+            return items
+
+        try:
+            root = ET.fromstring(resp.content)
+        except ET.ParseError:
+            logger.exception(f"Failed to parse XML from {feed.url}")
+            return items
+
+        # Handle both RSS 2.0 and Atom feeds
+        entries = self._extract_rss_entries(root, feed)
+
+        for entry in entries[: feed.max_items]:
+            url = entry.get("url", "")
             if not url or self._is_seen(url):
                 continue
 
-            published = ""
-            if hasattr(entry, "published_parsed") and entry.published_parsed:
+            # Check date
+            published = entry.get("published", "")
+            if published:
                 try:
-                    dt = datetime(*entry.published_parsed[:6], tzinfo=timezone.utc)
+                    dt = parsedate_to_datetime(published)
+                    if dt.tzinfo is None:
+                        dt = dt.replace(tzinfo=timezone.utc)
                     if dt < cutoff:
                         continue
                     published = dt.isoformat()
                 except (TypeError, ValueError):
-                    pass
+                    # Try ISO format (Atom feeds)
+                    try:
+                        dt = datetime.fromisoformat(published.replace("Z", "+00:00"))
+                        if dt < cutoff:
+                            continue
+                        published = dt.isoformat()
+                    except (TypeError, ValueError):
+                        pass
 
-            content = ""
-            if hasattr(entry, "content") and entry.content:
-                content = entry.content[0].get("value", "")
-            elif hasattr(entry, "summary"):
-                content = entry.get("summary", "")
-
+            content = entry.get("content", "")
             if content:
                 content = BeautifulSoup(content, "html.parser").get_text(separator="\n")
 
@@ -136,7 +165,7 @@ class Scanner:
                 title=entry.get("title", ""),
                 author=entry.get("author", feed.name),
                 published=published,
-                content=content[:15000],  # cap to avoid huge payloads
+                content=content[:15000],
                 source_name=feed.name,
                 themes=feed.themes,
             ))
@@ -144,9 +173,92 @@ class Scanner:
 
         return items
 
+    def _extract_rss_entries(self, root: ET.Element, feed: FeedConfig) -> list[dict]:
+        """Extract entries from RSS 2.0 or Atom XML."""
+        entries = []
+        ns = {"atom": "http://www.w3.org/2005/Atom"}
+
+        # Try RSS 2.0: <channel><item>
+        for item in root.iter("item"):
+            entry = {
+                "url": self._xml_text(item, "link") or "",
+                "title": self._xml_text(item, "title") or "",
+                "author": self._xml_text(item, "author") or self._xml_text(item, "dc:creator") or feed.name,
+                "published": self._xml_text(item, "pubDate") or "",
+                "content": self._xml_text(item, "content:encoded")
+                           or self._xml_text(item, "description") or "",
+            }
+            if entry["url"]:
+                entries.append(entry)
+
+        # Try Atom: <entry>
+        if not entries:
+            for item in root.iter("{http://www.w3.org/2005/Atom}entry"):
+                link_el = item.find("{http://www.w3.org/2005/Atom}link[@rel='alternate']")
+                if link_el is None:
+                    link_el = item.find("{http://www.w3.org/2005/Atom}link")
+                url = link_el.get("href", "") if link_el is not None else ""
+
+                author_el = item.find("{http://www.w3.org/2005/Atom}author")
+                author = ""
+                if author_el is not None:
+                    name_el = author_el.find("{http://www.w3.org/2005/Atom}name")
+                    author = name_el.text if name_el is not None and name_el.text else feed.name
+
+                content_el = item.find("{http://www.w3.org/2005/Atom}content")
+                summary_el = item.find("{http://www.w3.org/2005/Atom}summary")
+                content = ""
+                if content_el is not None and content_el.text:
+                    content = content_el.text
+                elif summary_el is not None and summary_el.text:
+                    content = summary_el.text
+
+                published_el = item.find("{http://www.w3.org/2005/Atom}published")
+                updated_el = item.find("{http://www.w3.org/2005/Atom}updated")
+                published = ""
+                if published_el is not None and published_el.text:
+                    published = published_el.text
+                elif updated_el is not None and updated_el.text:
+                    published = updated_el.text
+
+                entry = {
+                    "url": url,
+                    "title": self._xml_text_ns(item, "title", ns) or "",
+                    "author": author or feed.name,
+                    "published": published,
+                    "content": content,
+                }
+                if entry["url"]:
+                    entries.append(entry)
+
+        return entries
+
+    @staticmethod
+    def _xml_text(el: ET.Element, tag: str) -> Optional[str]:
+        """Get text of a child element, handling namespaced tags gracefully."""
+        child = el.find(tag)
+        if child is None:
+            # Try with common RSS namespaces
+            for prefix, uri in [("content", "http://purl.org/rss/1.0/modules/content/"),
+                                ("dc", "http://purl.org/dc/elements/1.1/")]:
+                if tag.startswith(prefix + ":"):
+                    local = tag.split(":", 1)[1]
+                    child = el.find(f"{{{uri}}}{local}")
+                    if child is not None:
+                        break
+        if child is not None and child.text:
+            return child.text
+        return None
+
+    @staticmethod
+    def _xml_text_ns(el: ET.Element, tag: str, ns: dict) -> Optional[str]:
+        child = el.find(f"{{http://www.w3.org/2005/Atom}}{tag}")
+        if child is not None and child.text:
+            return child.text
+        return None
+
     def _scan_reddit(self, feed: FeedConfig, lookback_hours: int) -> list[FeedItem]:
         items: list[FeedItem] = []
-        # Use Reddit's JSON API
         url = feed.url.rstrip("/") + "/hot.json?limit=25"
         headers = {"User-Agent": "FutureOutlookAgent/1.0"}
         try:
@@ -168,7 +280,6 @@ class Scanner:
             if created < cutoff_ts:
                 continue
 
-            # Use the linked URL if external, otherwise the reddit post
             target_url = post_url if not post_url.startswith("https://www.reddit.com") else permalink
             if self._is_seen(target_url):
                 continue
@@ -191,13 +302,11 @@ class Scanner:
         return items[:feed.max_items]
 
     def _scan_web(self, feed: FeedConfig) -> list[FeedItem]:
-        """Scrape a web page for article links — simple heuristic."""
         items: list[FeedItem] = []
         text = self._fetch_page_text(feed.url)
         if not text:
             return items
 
-        # For web pages, we just return the page itself as one item
         if not self._is_seen(feed.url):
             items.append(FeedItem(
                 url=feed.url,
@@ -221,7 +330,6 @@ class Scanner:
             )
             resp.raise_for_status()
             soup = BeautifulSoup(resp.text, "html.parser")
-            # Remove script/style
             for tag in soup(["script", "style", "nav", "footer", "header"]):
                 tag.decompose()
             text = soup.get_text(separator="\n", strip=True)
