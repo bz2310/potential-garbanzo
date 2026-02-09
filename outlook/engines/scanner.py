@@ -279,6 +279,8 @@ class Scanner:
         for post in data.get("data", {}).get("children", []):
             pd = post.get("data", {})
             post_url = pd.get("url", "")
+            if post_url.startswith("/"):
+                post_url = "https://www.reddit.com" + post_url
             permalink = "https://reddit.com" + pd.get("permalink", "")
             created = pd.get("created_utc", 0)
 
@@ -424,6 +426,10 @@ class Scanner:
                 tag.decompose()
             text = soup.get_text(separator="\n", strip=True)
             return text
+        except requests.exceptions.HTTPError as e:
+            # Paywalled / forbidden pages are expected (e.g. Bloomberg)
+            logger.debug(f"Could not fetch {url}: {e}")
+            return None
         except Exception:
             logger.exception(f"Failed to fetch {url}")
             return None

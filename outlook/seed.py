@@ -455,8 +455,8 @@ def _write_default_config(config_path: Path) -> None:
              "themes": ["ai_foundation_models"]},
             {"name": "Delphi Intelligence", "url": "https://www.delphiintelligence.io/",
              "feed_type": "web", "themes": ["ai_foundation_models", "ai_applications"]},
-            {"name": "Situational Awareness (Leopold)", "url": "https://www.forourposterity.com/rss/",
-             "feed_type": "rss", "themes": ["ai_foundation_models"]},
+            {"name": "Situational Awareness (Leopold)", "url": "https://www.forourposterity.com",
+             "feed_type": "web", "themes": ["ai_foundation_models"]},
             {"name": "Zvi Mowshowitz", "url": "https://thezvi.substack.com/feed", "feed_type": "rss",
              "themes": ["ai_foundation_models", "ai_applications"]},
             {"name": "Import AI (Jack Clark)", "url": "https://importai.substack.com/feed", "feed_type": "rss",
@@ -469,7 +469,7 @@ def _write_default_config(config_path: Path) -> None:
              "feed_type": "reddit", "themes": ["ai_foundation_models"]},
 
             # AI Applications & Robotics
-            {"name": "a16z blog", "url": "https://a16z.com/blog", "feed_type": "web",
+            {"name": "a16z blog", "url": "https://a16z.news/feed", "feed_type": "rss",
              "themes": ["ai_applications", "capital_markets"]},
             {"name": "r/LocalLLaMA", "url": "https://www.reddit.com/r/LocalLLaMA",
              "feed_type": "reddit", "themes": ["ai_foundation_models", "ai_applications"]},

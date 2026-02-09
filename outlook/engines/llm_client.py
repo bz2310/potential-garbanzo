@@ -30,6 +30,7 @@ class LLMClient:
             response = self.client.messages.create(
                 model=self.model,
                 max_tokens=max_tokens,
+                temperature=0,
                 messages=[{"role": "user", "content": prompt}],
             )
             return response.content[0].text
@@ -38,6 +39,7 @@ class LLMClient:
             response = self.client.chat.completions.create(
                 model=self.model,
                 max_tokens=max_tokens,
+                temperature=0,
                 messages=[{"role": "user", "content": prompt}],
             )
             return response.choices[0].message.content
