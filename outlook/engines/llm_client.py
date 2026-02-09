@@ -31,6 +31,7 @@ class LLMClient:
                 model=self.model,
                 max_tokens=max_tokens,
                 messages=[{"role": "user", "content": prompt}],
+                temperature=0,
             )
             return response.content[0].text
 
@@ -39,6 +40,7 @@ class LLMClient:
                 model=self.model,
                 max_tokens=max_tokens,
                 messages=[{"role": "user", "content": prompt}],
+                temperature=0,
             )
             return response.choices[0].message.content
 
