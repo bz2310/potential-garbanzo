@@ -134,12 +134,16 @@ class Extractor:
                 action_suggestion=cd.get("action_suggestion", ""),
             ))
 
+        raw_summary = data.get("summary", "")
+        if isinstance(raw_summary, list):
+            raw_summary = "\n".join(str(s) for s in raw_summary)
+
         source = Source(
             url=item.url,
             title=data.get("title", item.title),
             author=data.get("author", item.author),
             date_published=data.get("date_published", ""),
-            summary=data.get("summary", ""),
+            summary=raw_summary,
             claims=claims,
             themes=data.get("themes", item.themes),
             significance=data.get("overall_significance", max((c.significance for c in claims), default=1)),
