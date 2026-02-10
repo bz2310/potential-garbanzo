@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+from datetime import datetime
 from typing import Optional
 
 from outlook.engines.llm_client import LLMClient
@@ -155,20 +156,47 @@ class Extractor:
         return source
 
     def extract_batch(
-        self, items: list[FeedItem], significance_threshold: int = 4
+        self, items: list[FeedItem], significance_threshold: int = 4,
+        published_cutoff: datetime | None = None,
     ) -> tuple[list[Source], list[Source]]:
         """Extract claims from multiple items. Returns (kept, rejected)."""
         kept: list[Source] = []
         rejected: list[Source] = []
+        seen_urls: set[str] = set()
         for item in items:
+            if item.url in seen_urls:
+                logger.debug(f"Skipping duplicate URL: {item.url}")
+                continue
+            seen_urls.add(item.url)
+
             source = self.extract(item)
-            
-            if source and source.significance >= significance_threshold:
-                logger.info(f"Title: {source.title} URL: {source.url}")
+            if not source:
+                continue
+
+            logger.info(f"Title: {source.title} URL: {source.url}")
+
+            # Filter old articles (especially from web scraper where dates
+            # aren't available until the LLM extracts them from content)
+            if published_cutoff and source.date_published:
+                try:
+                    pub_dt = datetime.fromisoformat(
+                        source.date_published.replace("Z", "+00:00")
+                    )
+                    if pub_dt.tzinfo is None:
+                        from datetime import timezone
+                        pub_dt = pub_dt.replace(tzinfo=timezone.utc)
+                    if pub_dt < published_cutoff:
+                        logger.info(
+                            f"Skipping old article: {source.title} ({source.date_published})"
+                        )
+                        continue
+                except (ValueError, TypeError):
+                    pass  # Unparseable date — let it through
+
+            if source.significance >= significance_threshold:
                 kept.append(source)
                 logger.info(f"Kept: {source.title} (significance {source.significance})")
-            elif source:
-                logger.info(f"Title: {source.title} URL: {source.url}")
+            else:
                 rejected.append(source)
                 logger.info(f"Below threshold: {source.title} (significance {source.significance})")
         return kept, rejected

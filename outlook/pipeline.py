@@ -6,6 +6,7 @@ This is what runs on each scheduled scan and can also be invoked manually.
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import yaml
@@ -64,7 +65,11 @@ def run_scan_pipeline(project_root: Path, scan_time: str = "AM") -> None:
 
     # 3. Extract claims
     logger.info("Extracting claims...")
-    sources, rejected_sources = extractor.extract_batch(items, significance_threshold=significance_threshold)
+    published_cutoff = datetime.now(timezone.utc) - timedelta(hours=lookback_hours)
+    sources, rejected_sources = extractor.extract_batch(
+        items, significance_threshold=significance_threshold,
+        published_cutoff=published_cutoff,
+    )
     logger.info(f"{len(sources)} above threshold, {len(rejected_sources)} below threshold")
 
     # Save sources
@@ -77,9 +82,10 @@ def run_scan_pipeline(project_root: Path, scan_time: str = "AM") -> None:
     deltas = analyst.analyze(trees, sources, belief_log)
     logger.info(f"Analyst made {len(deltas)} probability updates")
 
-    # Save updated trees
+    # Save updated trees (persists probability changes for next run)
     for name, tree in trees.items():
         scenario_engine.save_tree(tree)
+    logger.info(f"Saved {len(trees)} scenario trees to disk")
 
     data = briefing_engine.build_briefing(deltas, sources, rejected_sources, scan_time=scan_time)
     html = briefing_engine.render_html(data)
