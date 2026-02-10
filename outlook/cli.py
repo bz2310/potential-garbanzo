@@ -82,6 +82,12 @@ def cmd_email_test(args):
     print("Sent!" if ok else "Failed. Check logs.")
 
 
+def cmd_blurbs(args):
+    """Fetch URLs, extract blurbs, and email them."""
+    from outlook.pipeline import run_blurbs_pipeline
+    run_blurbs_pipeline(PROJECT_ROOT, args.urls)
+
+
 def cmd_override(args):
     """Override a probability (disagree with the analyst)."""
     se = get_scenario_engine()
@@ -281,6 +287,9 @@ def build_parser():
 
     sub.add_parser("verify-feeds", help="Test all configured feeds and report status")
 
+    p = sub.add_parser("blurbs", help="Extract and email blurbs for specific URLs")
+    p.add_argument("urls", nargs="+", help="One or more URLs to extract blurbs from")
+
     p = sub.add_parser("sources", help="List ingested sources")
     p.add_argument("--theme", default=None)
 
@@ -306,6 +315,7 @@ def main(argv=None):
         "beliefs": cmd_beliefs,
         "themes": cmd_themes,
         "verify-feeds": cmd_verify_feeds,
+        "blurbs": cmd_blurbs,
         "sources": cmd_sources,
     }
     cmds[args.command](args)

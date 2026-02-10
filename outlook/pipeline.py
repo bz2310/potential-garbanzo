@@ -111,3 +111,84 @@ def run_scan_pipeline(project_root: Path, scan_time: str = "AM") -> None:
     )
     emailer.send(subject, html)
     logger.info("Pipeline complete.")
+
+
+def run_blurbs_pipeline(project_root: Path, urls: list[str]) -> None:
+    """Fetch specific URLs, extract blurbs via LLM, and email them."""
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s")
+
+    from outlook.engines.briefing_engine import BriefingData
+    from outlook.engines.scanner import FeedItem, fetch_page_text
+
+    config = load_config(project_root)
+    templates_dir = project_root / "templates"
+    briefings_dir = project_root / "data" / "briefings"
+
+    llm = create_llm_client(config)
+    extractor = Extractor(llm=llm)
+
+    # 1. Fetch and extract each URL
+    sources = []
+    for url in urls:
+        logger.info(f"Fetching {url}...")
+        text = fetch_page_text(url)
+        if not text or len(text.strip()) < 100:
+            logger.warning(f"Skipping {url} — could not fetch or too little content")
+            continue
+
+        item = FeedItem(
+            url=url,
+            title=url,
+            author="",
+            published=datetime.now(timezone.utc).isoformat(),
+            content=text[:15000],
+            source_name="ad-hoc",
+            themes=[],
+        )
+
+        source = extractor.extract(item)
+        if source:
+            sources.append(source)
+            logger.info(f"Extracted: {source.title} (significance {source.significance})")
+        else:
+            logger.warning(f"Extraction failed for {url}")
+
+    if not sources:
+        logger.warning("No sources extracted. Nothing to send.")
+        return
+
+    # 2. Render using existing briefing template
+    briefing_engine = BriefingEngine(
+        scenario_engine=None,
+        belief_log=None,
+        templates_dir=templates_dir,
+        briefings_dir=briefings_dir,
+    )
+
+    data = BriefingData(
+        significant_sources=sources,
+        has_content=True,
+        scan_time="Blurbs",
+    )
+    html = briefing_engine.render_html(data)
+
+    # 3. Email (or print to stdout)
+    email_config = config.get("email", {})
+    if not email_config.get("smtp_host"):
+        logger.warning("Email not configured. Printing blurbs to stdout.")
+        print(html)
+        return
+
+    emailer = Emailer(
+        smtp_host=email_config["smtp_host"],
+        smtp_port=email_config.get("smtp_port", 587),
+        smtp_user=email_config["smtp_user"],
+        smtp_password=email_config["smtp_password"],
+        from_address=email_config["from_address"],
+        to_addresses=email_config["to_addresses"],
+    )
+
+    n = len(sources)
+    subject = f"Outlook Blurbs \u2014 {n} article{'s' if n != 1 else ''}"
+    emailer.send(subject, html)
+    logger.info(f"Blurbs email sent ({n} articles).")

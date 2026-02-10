@@ -23,6 +23,27 @@ logger = logging.getLogger(__name__)
 DEFAULT_LOOKBACK_HOURS = 12
 
 
+def fetch_page_text(url: str, timeout: int = 30) -> Optional[str]:
+    """Fetch a URL and return its visible text content, or None on failure."""
+    try:
+        resp = requests.get(
+            url,
+            timeout=timeout,
+            headers={"User-Agent": "FutureOutlookAgent/1.0"},
+        )
+        resp.raise_for_status()
+        soup = BeautifulSoup(resp.text, "html.parser")
+        for tag in soup(["script", "style", "nav", "footer", "header"]):
+            tag.decompose()
+        return soup.get_text(separator="\n", strip=True)
+    except requests.exceptions.HTTPError as e:
+        logger.debug(f"Could not fetch {url}: {e}")
+        return None
+    except Exception:
+        logger.exception(f"Failed to fetch {url}")
+        return None
+
+
 @dataclass
 class FeedItem:
     url: str = ""
@@ -414,22 +435,4 @@ class Scanner:
         return items
 
     def _fetch_page_text(self, url: str) -> Optional[str]:
-        try:
-            resp = requests.get(
-                url,
-                timeout=self.request_timeout,
-                headers={"User-Agent": "FutureOutlookAgent/1.0"},
-            )
-            resp.raise_for_status()
-            soup = BeautifulSoup(resp.text, "html.parser")
-            for tag in soup(["script", "style", "nav", "footer", "header"]):
-                tag.decompose()
-            text = soup.get_text(separator="\n", strip=True)
-            return text
-        except requests.exceptions.HTTPError as e:
-            # Paywalled / forbidden pages are expected (e.g. Bloomberg)
-            logger.debug(f"Could not fetch {url}: {e}")
-            return None
-        except Exception:
-            logger.exception(f"Failed to fetch {url}")
-            return None
+        return fetch_page_text(url, timeout=self.request_timeout)
