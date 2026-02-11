@@ -85,7 +85,11 @@ def cmd_email_test(args):
 def cmd_blurbs(args):
     """Fetch URLs, extract blurbs, and email them."""
     from outlook.pipeline import run_blurbs_pipeline
-    run_blurbs_pipeline(PROJECT_ROOT, args.urls)
+    urls = args.urls.split()
+    if not urls:
+        print("Error: provide at least one URL.")
+        return
+    run_blurbs_pipeline(PROJECT_ROOT, urls)
 
 
 def cmd_override(args):
@@ -288,7 +292,7 @@ def build_parser():
     sub.add_parser("verify-feeds", help="Test all configured feeds and report status")
 
     p = sub.add_parser("blurbs", help="Extract and email blurbs for specific URLs")
-    p.add_argument("urls", nargs="+", help="One or more URLs to extract blurbs from")
+    p.add_argument("urls", help="Space-separated URLs to extract blurbs from")
 
     p = sub.add_parser("sources", help="List ingested sources")
     p.add_argument("--theme", default=None)
